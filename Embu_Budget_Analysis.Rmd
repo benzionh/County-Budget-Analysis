@@ -1,0 +1,585 @@
+---
+title: "Embu County Budget Analysis Report"
+author: "Benzion Murimi"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_width: 7
+    fig_height: 5
+header-includes:
+  - \usepackage{booktabs}     # needed for booktabs=TRUE tables
+  - \usepackage{titling}      # lets us control the title block
+  - \pretitle{\begin{center}\LARGE\bfseries}
+  - \posttitle{\end{center}\vspace{0.5cm}}
+  - \preauthor{\begin{center}\large}
+  - \postauthor{\end{center}}
+  - \predate{\begin{center}\large}
+  - \postdate{\end{center}\vspace{2cm}}
+---
+
+```{r setup, include=FALSE}
+# Global options: hide code, suppress warnings, centre all figures
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center"
+)
+
+# Packages
+# tidyverse - data wrangling and ggplot2 charts
+# scales    - formats numbers with commas and % on axes
+# knitr + kableExtra - for PDF-friendly tables (same as KCSE report)
+library(tidyverse)
+library(scales)
+library(knitr)
+library(kableExtra)
+```
+
+```{r load-revenue-data, include=FALSE}
+# Revenue figures are built here (hidden) so summary statistics are available
+# for the Executive Summary below. The same code is shown, for transparency,
+# in the "Data Entry" section under Data and Methodology further down.
+fy <- 2013:2025
+
+equitable  <- c(
+  2.81, 3.53, 3.84, 4.14, 4.1, 4.46,
+  4.30, 4.67, 5.13, 5.54, 5.34, 5.80, 6.08
+)
+
+own_source <- c(
+  0.6591, 0.748, 0.63076, 0.80377, 0.83978, 0.950,
+  0.920, 0.93778, 0.900, 0.51414, 0.750, 1.55, 1.36
+)
+
+conditional <- c(
+  0.5572, 0.01137, 0.42075, 0.51872, 0.74903, 1.10,
+  1.26, 0.99806, 0.62812, 0.43586, 1.21, 1.00, 0.98140
+)
+
+budget <- data.frame(
+  FY          = fy,
+  Equitable   = equitable,
+  OwnSource   = own_source,
+  Conditional = conditional
+)
+
+budget$Total_Revenue    <- budget$Equitable + budget$OwnSource + budget$Conditional
+budget$OSR_Pct          <- round(budget$OwnSource   / budget$Total_Revenue * 100, 1)
+budget$Equitable_Pct    <- round(budget$Equitable   / budget$Total_Revenue * 100, 1)
+budget$Conditional_Pct  <- round(budget$Conditional / budget$Total_Revenue * 100, 1)
+```
+
+\newpage
+
+# Executive Summary
+
+This report presents an analysis of Embu County budget allocations from
+**FY 2013/14 to FY 2025/26**. All monetary figures are expressed in **KES
+Billions** unless otherwise stated. The analysis covers four key areas:
+
+- **Equitable Share** — national transfers to the county
+- **Own Source Revenue (OSR)** — locally collected revenue
+- **Conditional Allocations** — grants tied to specific programmes
+- **Departmental Allocations** — how the budget is distributed across sectors
+
+Data was sourced from the Office of the Controller of Budget Annual County
+Budget Implementation Reports.
+
+```{r summary-numbers, include=FALSE}
+# Key summary statistics used throughout the report (Executive Summary and
+# Conclusions). Calculated early, right after the data is assembled, so both
+# sections stay in sync with the underlying figures.
+avg_osr_pct       <- round(mean(budget$OSR_Pct,       na.rm = TRUE), 1)
+avg_equitable_pct <- round(mean(budget$Equitable_Pct, na.rm = TRUE), 1)
+revenue_cagr       <- round((
+  (budget$Total_Revenue[budget$FY == max(budget$FY)] /
+     budget$Total_Revenue[budget$FY == min(budget$FY)]
+  )^(1 / (max(budget$FY) - min(budget$FY))) - 1
+) * 100, 1)
+```
+
+**Key figures at a glance:** over the period reviewed, Equitable Share has
+averaged **`r avg_equitable_pct`%** of total county revenue, while Own Source
+Revenue has averaged only **`r avg_osr_pct`%** — well below the 15% national
+target. Total revenue has grown at a compound annual rate of roughly
+**`r revenue_cagr`%** over the thirteen financial years covered.
+
+\newpage
+
+# Data and Methodology
+
+## Data Entry
+
+Figures below are annual totals in **KES Billions**, by financial year
+(FY 2013/14 through FY 2025/26). The code is shown here for transparency;
+it was already run earlier (see the hidden `load-revenue-data` chunk) so
+that summary statistics could feed into the Executive Summary above.
+
+```{r data-listing, echo=TRUE, eval=FALSE}
+fy <- 2013:2025
+
+# Equitable Share, Own Source Revenue, and Conditional Allocations,
+# one value per financial year, in KES Billions
+equitable  <- c(
+  2.81, 3.53, 3.84, 4.14, 4.1, 4.46,
+  4.30, 4.67, 5.13, 5.54, 5.34, 5.80, 6.08
+)
+
+own_source <- c(
+  0.6591, 0.748, 0.63076, 0.80377, 0.83978, 0.950,
+  0.920, 0.93778, 0.900, 0.51414, 0.750, 1.55, 1.36
+)
+
+conditional <- c(
+  0.5572, 0.01137, 0.42075, 0.51872, 0.74903, 1.10,
+  1.26, 0.99806, 0.62812, 0.43586, 1.21, 1.00, 0.98140
+)
+
+# Build the main revenue data frame and derive totals / percentage shares
+budget <- data.frame(
+  FY          = fy,
+  Equitable   = equitable,
+  OwnSource   = own_source,
+  Conditional = conditional
+)
+
+budget$Total_Revenue   <- budget$Equitable + budget$OwnSource + budget$Conditional
+budget$OSR_Pct         <- round(budget$OwnSource   / budget$Total_Revenue * 100, 1)
+budget$Equitable_Pct   <- round(budget$Equitable   / budget$Total_Revenue * 100, 1)
+budget$Conditional_Pct <- round(budget$Conditional / budget$Total_Revenue * 100, 1)
+```
+
+Departmental allocations are shown for the six sectors with complete data
+across all thirteen financial years. An "Other" category was considered but
+dropped here since no reliable figures were available for it; `Total_Dept`
+below therefore represents the sum of these six tracked sectors, not the
+full county budget.
+
+```{r dept-data, echo=TRUE}
+departments <- data.frame(
+  FY              = fy,
+  Health          = c(0.276,  0.36638,  1.37056, 1.61719,  1.58212,
+                      1.92910,  1.91012,  2.0371,  1.87249,
+                       1.80832,  1.91254,  1.37007, 1.76699),
+
+  Education       = c(0.045,  0.01386,  0.14554,  0.37349,  0.33967,
+                      0.43738, 0.38055,  0.3041,  0.43913,
+                      0.42928, 0.380,  0.39510, 0.45075),
+
+  County_Assembly = c(0.484, 0.41676, 0.48431,  0.50366, 0.50812,
+                      0.59274,  0.59252,  0.683,  0.69907,
+                      0.84795,  0.624,  0.74508, 0.654),
+
+  Roads           = c(0.014, 0.03509,  0.06428,  0.06552, 0.05911,
+                      0.06832, 0.06464,  0.0600,  0.05640,
+                      0.04588, 0.039, 0.07664, 0.09478),
+
+  Agriculture     = c(0.015,  0.03051, 0.25690,  0.23185, 0.25188,
+                      0.37928, 0.27228, 0.3692, 0.40839,
+                      0.25593, 0.290, 0.27546, 0.22873),
+
+  Public_Admin    = c(0.032,  0.0154,  0.23274,  0.31818,  0.26981,
+                       0.46845,  0.34762,  0.3978, 0.50096,
+                      0.67780, 0.577,  1.00426, 0.93242)
+)
+
+# Row-wise total across the six tracked departments (exclude FY column)
+departments$Total_Dept <- rowSums(departments[, -1], na.rm = TRUE)
+```
+
+## Methodology
+
+Revenue and departmental figures were manually extracted from Controller of
+Budget reports. Analysis was conducted in R to compute:
+
+- Year-on-year growth rates
+- Revenue composition (% share per stream)
+- OSR dependency ratio
+- Departmental share of total budget
+
+### Limitations
+
+- Figures were transcribed manually from published PDF reports; transcription
+  errors, while checked, cannot be fully ruled out.
+- Departmental analysis covers six sectors with complete year-on-year data
+  (Health, Education, County Assembly, Roads, Agriculture, Public
+  Administration). `Total_Dept` reflects the sum of these six sectors, not
+  the county's full departmental budget.
+- Figures are nominal (not inflation-adjusted), so year-on-year growth
+  partly reflects price inflation rather than real budget expansion.
+
+\newpage
+
+# Revenue Trend Analysis
+
+## Summary Table
+
+```{r summary-table}
+# Display the raw revenue figures in a clean table
+# format.args adds comma separators to large numbers
+budget[, c("FY", "Equitable",
+           "OwnSource", "Conditional", "Total_Revenue")] |>
+  kable(
+    booktabs    = TRUE,
+    caption     = "Revenue Performance by Financial Year (KES Billions)",
+    format.args = list(big.mark = ",", nsmall = 2),
+    col.names   = c("FY", "Equitable Share", "Own Source Revenue",
+                    "Conditional Allocations", "Total Revenue"),
+    align       = "lrrrr"
+  ) |>
+  kable_styling(latex_options = "hold_position") |>
+  column_spec(1, bold = TRUE)
+```
+
+## Year-on-Year Growth Rate
+
+```{r growth-table}
+# Compute how much Total Revenue grew from one year to the next
+# diff() gives the change; dividing by the prior year gives the growth rate
+growth <- c(NA, round(diff(budget$Total_Revenue) / head(budget$Total_Revenue, -1) * 100, 1))
+
+growth_table <- data.frame(
+  FY            = budget$FY,
+  Total_Revenue = budget$Total_Revenue,
+  `Growth %`    = growth,
+  check.names   = FALSE
+)
+
+kable(
+  growth_table,
+  booktabs    = TRUE,
+  caption     = "Year-on-Year Total Revenue Growth (KES Billions)",
+  format.args = list(big.mark = ",", nsmall = 2),
+  align       = "lrr"
+) |>
+  kable_styling(latex_options = "hold_position") |>
+  column_spec(1, bold = TRUE)
+```
+
+## Revenue Trend Chart
+
+```{r trend-plot, fig.cap="Trend of Major Revenue Streams (2013-2025)"}
+# Reshape to long format so we can colour by revenue stream
+# Each row becomes: FY | Revenue_Type | Amount
+budget_long <- reshape(
+  budget[, c("FY", "Equitable", "OwnSource", "Conditional")],
+  idvar     = "FY",
+  varying   = c("Equitable", "OwnSource", "Conditional"),
+  v.names   = "Amount",
+  timevar   = "Revenue_Type",
+  times     = c("Equitable Share", "Own Source Revenue", "Conditional"),
+  direction = "long"
+)
+
+# Colour palette matching the report style
+pal_revenue <- c(
+  "Equitable Share"    = "#2980b9",
+  "Own Source Revenue" = "#c0392b",
+  "Conditional"        = "#27ae60"
+)
+
+ggplot(budget_long, aes(x = FY, y = Amount, colour = Revenue_Type, group = Revenue_Type)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2.5) +
+  scale_x_continuous(breaks = fy) +
+  scale_y_continuous(labels = comma) +
+  scale_colour_manual(values = pal_revenue, name = "") +
+  labs(
+    title   = "Embu County Revenue Streams (FY 2013/14 to 2025/26)",
+    x       = "Financial Year",
+    y       = "Amount (KES Billions)",
+    caption = "Source: Controller of Budget Annual Reports"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "bottom",
+    # Angle x-axis labels so years don't overlap
+    axis.text.x     = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+```
+
+### Observation
+
+Equitable share shows a steady upward trend in line with the Commission on
+Revenue Allocation (CRA) vertical revenue sharing formula. Own Source Revenue
+has remained relatively stagnant, indicating a need for revenue enhancement
+measures at the county level.
+
+\newpage
+
+# Budget Composition and Dependency
+
+## Revenue Composition Over Time
+
+```{r composition, fig.cap="Revenue Composition Over Time (100% Stacked Area)"}
+# 100% stacked area chart — shows the SHARE of each revenue stream per year
+# regardless of how total revenue has grown
+budget_pct <- reshape(
+  budget[, c("FY", "Equitable_Pct", "OSR_Pct", "Conditional_Pct")],
+  idvar     = "FY",
+  varying   = c("Equitable_Pct", "OSR_Pct", "Conditional_Pct"),
+  v.names   = "Percent",
+  timevar   = "Revenue_Type",
+  times     = c("Equitable Share", "Own Source Revenue", "Conditional"),
+  direction = "long"
+)
+
+ggplot(budget_pct, aes(x = FY, y = Percent, fill = Revenue_Type)) +
+  geom_area(alpha = 0.85) +
+  scale_x_continuous(breaks = fy) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = pal_revenue, name = "") +
+  labs(
+    title   = "Revenue Composition — Percentage Share per Year",
+    x       = "Financial Year",
+    y       = "% of Total Revenue",
+    caption = "Source: Controller of Budget Annual Reports"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title       = element_text(face = "bold"),
+    legend.position  = "bottom",
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+```
+
+## OSR Dependency Table
+
+```{r osr-table}
+# OSR dependency = Own Source Revenue as a % of Total Revenue
+# A low % means the county relies heavily on national transfers
+osr_table <- data.frame(
+  FY            = budget$FY,
+  OwnSource     = budget$OwnSource,
+  Total_Revenue = budget$Total_Revenue,
+  `OSR %`       = budget$OSR_Pct,
+  check.names   = FALSE
+)
+
+kable(
+  osr_table,
+  booktabs    = TRUE,
+  caption     = "Own Source Revenue (OSR) Dependency Ratio",
+  format.args = list(big.mark = ",", nsmall = 2),
+  col.names   = c("FY", "Own Source Revenue (KES Bn)", "Total Revenue (KES Bn)", "OSR as % of Total"),
+  align       = "lrrr"
+) |>
+  kable_styling(latex_options = "hold_position") |>
+  column_spec(1, bold = TRUE) |>
+  # Highlight the OSR % column to draw the reader's attention
+  column_spec(4, bold = TRUE)
+```
+
+## OSR Trend Chart
+
+```{r osr-chart, fig.cap="Own Source Revenue Dependency Ratio Over Time", fig.height=4}
+# Bar chart showing OSR % each year with a reference line at 15%
+# (the national target for county OSR contribution)
+ggplot(budget, aes(x = factor(FY), y = OSR_Pct)) +
+  geom_col(fill = "#c0392b", width = 0.65) +
+  # Dashed reference line at the 15% national target
+  geom_hline(yintercept = 15, linetype = "dashed", colour = "grey30", linewidth = 0.8) +
+  annotate("text", x = 0.5, y = 16, label = "15% target",
+           hjust = 0, size = 3.2, colour = "grey30") +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title   = "OSR as % of Total Revenue per Year",
+    x       = "Financial Year",
+    y       = "OSR %",
+    caption = "Source: Controller of Budget Annual Reports"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title         = element_text(face = "bold"),
+    panel.grid.major.x = element_blank(),
+    axis.text.x        = element_text(angle = 45, hjust = 1)
+  )
+```
+
+### Observation
+
+The county's OSR contribution has remained below the national target of 15%.
+This heavy reliance on equitable share exposes the county to delays in national
+revenue disbursements and limits fiscal autonomy.
+
+\newpage
+
+# Departmental Allocation Analysis
+
+## Departmental Allocations Over Time
+
+```{r dept-plot, fig.cap="Departmental Budget Allocations Over Time (Stacked Area)"}
+# Reshape departments to long format for plotting
+# Each row becomes: FY | Department | Allocation
+dept_long <- reshape(
+  departments[, names(departments) != "Total_Dept"],
+  idvar     = "FY",
+  varying   = c("Health", "Education", "County_Assembly",
+                "Roads", "Agriculture", "Public_Admin"),
+  v.names   = "Allocation",
+  timevar   = "Department",
+  times     = c("Health", "Education", "County Assembly",
+                "Roads", "Agriculture", "Public Admin"),
+  direction = "long"
+)
+
+pal_dept <- c(
+  "Health"          = "#2980b9",
+  "Education"       = "#27ae60",
+  "County Assembly" = "#8e44ad",
+  "Roads"           = "#e67e22",
+  "Agriculture"     = "#16a085",
+  "Public Admin"    = "#c0392b"
+)
+
+ggplot(dept_long, aes(x = FY, y = Allocation, fill = Department)) +
+  geom_area(alpha = 0.85) +
+  scale_x_continuous(breaks = fy) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_manual(values = pal_dept, name = "") +
+  labs(
+    title   = "Departmental Budget Allocations (FY 2013/14 to 2025/26)",
+    x       = "Financial Year",
+    y       = "Allocation (KES Billions)",
+    caption = "Source: Controller of Budget Annual Reports"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title       = element_text(face = "bold"),
+    legend.position  = "bottom",
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+```
+
+## Department Shares — Latest Financial Year
+
+```{r dept-latest}
+# Filter to the most recent year and rank departments by allocation
+latest_fy  <- max(departments$FY)
+latest_row <- departments[departments$FY == latest_fy, ]
+total_dept <- latest_row$Total_Dept
+
+# Build a ranked summary table for the latest FY
+dept_names <- c("Health", "Education", "County_Assembly",
+                "Roads", "Agriculture", "Public_Admin")
+
+dept_values <- as.numeric(latest_row[, dept_names])
+
+latest_table <- data.frame(
+  Department = c("Health", "Education", "County Assembly",
+                 "Roads", "Agriculture", "Public Admin"),
+  Allocation = dept_values,
+  Share_Pct  = round(dept_values / total_dept * 100, 1)
+)
+
+# Sort by largest allocation first
+latest_table <- latest_table[order(-latest_table$Allocation), ]
+
+kable(
+  latest_table,
+  booktabs    = TRUE,
+  caption     = paste("Departmental Allocation Ranking — FY", latest_fy, "/", latest_fy + 1,
+                       "(KES Billions)"),
+  format.args = list(big.mark = ",", nsmall = 2),
+  col.names   = c("Department", "Allocation (KES Bn)", "Share (%)"),
+  align       = "lrr",
+  row.names   = FALSE
+) |>
+  kable_styling(latex_options = "hold_position") |>
+  column_spec(1, bold = TRUE) |>
+  column_spec(3, bold = TRUE)
+```
+
+## Department Allocation Bar Chart — Latest Year
+
+```{r dept-bar, fig.cap="Department Allocation Ranking — Latest Financial Year", fig.height=4}
+# Horizontal bar chart makes department names easy to read
+ggplot(latest_table, aes(x = reorder(Department, Allocation), y = Allocation, fill = Department)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  # Add % share label at the end of each bar
+  geom_text(aes(label = paste0(Share_Pct, "%")), hjust = -0.15, size = 3.2) +
+  coord_flip() +   # flip so departments are on the y-axis
+  scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.15))) +
+  scale_fill_manual(values = pal_dept) +
+  labs(
+    title   = paste("Department Allocation Ranking — FY", latest_fy),
+    x       = "",
+    y       = "Allocation (KES Billions)",
+    caption = "Source: Controller of Budget Annual Reports"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title         = element_text(face = "bold"),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+\newpage
+
+# Conclusions and Recommendations
+
+```{r conclusion-numbers, include=FALSE}
+# avg_osr_pct and avg_equitable_pct were already computed in the
+# load-revenue-data / summary-numbers chunks near the top of the report.
+# Only the Health + Roads share (needs latest_table, built later) is new here.
+health_roads_alloc <- sum(latest_table$Allocation[latest_table$Department %in% c("Health", "Roads")])
+health_roads_pct   <- round(health_roads_alloc / total_dept * 100, 1)
+```
+
+## Conclusions
+
+1. **Revenue Dependency** — Embu County relies on equitable share for an average
+   of **`r avg_equitable_pct`%** of its total revenue, exposing it to fiscal
+   risks from delayed national disbursements.
+
+2. **OSR Underperformance** — Own Source Revenue averages **`r avg_osr_pct`%**
+   of total revenue, well below the 15% national target. This signals
+   underutilised local revenue potential.
+
+3. **Departmental Priority** — Health and Roads combined account for
+   **`r health_roads_pct`%** of the total department budget in
+   FY `r latest_fy`/`r latest_fy + 1`, reflecting the county's focus on
+   basic services and infrastructure.
+
+4. **Steady Revenue Growth** — Total county revenue has grown at a compound
+   annual rate of roughly **`r revenue_cagr`%** over the analysis period,
+   driven primarily by increases in equitable share transfers from the
+   national government.
+
+## Recommendations
+
+- **Strengthen OSR collection** — The county should review its revenue streams
+  (business licences, land rates, market fees) and invest in collection
+  mechanisms to approach the 15% OSR target.
+
+- **Diversify revenue sources** — Reducing dependence on equitable share would
+  improve fiscal resilience, especially during periods of delayed national
+  disbursements.
+
+- **Maintain health and infrastructure investment** — The prioritisation of
+  Health and Roads should be sustained and, where possible, increased to
+  support service delivery targets.
+
+- **Improve budget absorption** — Future analysis should compare allocated
+  versus actual expenditure to assess implementation efficiency.
+
+\newpage
+
+# Appendix: Session Information
+
+The R and package versions below are recorded for reproducibility. This
+section can be removed before sharing the report externally if a shorter
+document is preferred.
+
+```{r session-info}
+sessionInfo()
+```
